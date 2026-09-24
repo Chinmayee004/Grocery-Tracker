@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { supabase, isSupabaseConfigured } from '../config/supabase.js';
-import { authenticateHttp } from '../middleware/auth.js';
+import { authenticateHttp, DEMO_USER } from '../middleware/auth.js';
 import { memoryStore } from '../store/memoryStore.js';
 
 const router = Router();
@@ -13,7 +13,10 @@ const router = Router();
  */
 router.get('/', authenticateHttp, async (req, res, next) => {
   try {
-    if (!isSupabaseConfigured) {
+    // Demo sessions carry a synthetic non-UUID id, so they can never satisfy the
+    // grocery_items.user_id foreign key to auth.users. Keep them in the memory
+    // store even once Supabase credentials are configured.
+    if (!isSupabaseConfigured || req.user.id === DEMO_USER.id) {
       const items = memoryStore.getItems(req.user.id);
       return res.status(200).json({ success: true, data: items });
     }

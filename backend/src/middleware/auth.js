@@ -1,6 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../config/supabase.js';
 
-const DEMO_USER = {
+export const DEMO_USER = {
   id: 'demo-user-001',
   email: 'demo@grocerytracker.local',
   user_metadata: { name: 'Demo Shopper' },

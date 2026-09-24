@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../config/supabase.js';
 import { memoryStore } from '../store/memoryStore.js';
+import { DEMO_USER } from '../middleware/auth.js';
 
 /**
  * Registers all real-time Grocery List WebSocket event handlers on the given socket connection.
@@ -15,6 +16,11 @@ export function registerGroceryHandlers(io, socket) {
     socket.disconnect(true);
     return;
   }
+
+  // Demo sessions carry a synthetic non-UUID id, so they can never satisfy the
+  // grocery_items.user_id foreign key to auth.users. Keep them in the memory
+  // store even once Supabase credentials are configured.
+  const useMemoryStore = !isSupabaseConfigured || userId === DEMO_USER.id;
 
   // Each user has their own private real-time room.
   // This allows real-time synchronization across multiple devices, browser tabs, or shared account sessions.
@@ -37,7 +43,7 @@ export function registerGroceryHandlers(io, socket) {
         return;
       }
 
-      if (!isSupabaseConfigured) {
+      if (useMemoryStore) {
         const newItem = memoryStore.addItem(userId, name);
         console.log(`[SOCKET-DEMO] Item added by ${userEmail}: "${newItem.name}" (${newItem.id})`);
         io.to(userRoom).emit('item_added', newItem);
@@ -94,7 +100,7 @@ export function registerGroceryHandlers(io, socket) {
         return;
       }
 
-      if (!isSupabaseConfigured) {
+      if (useMemoryStore) {
         const updatedItem = memoryStore.toggleItem(userId, id, is_completed);
         if (!updatedItem) {
           if (typeof callback === 'function') callback({ success: false, error: 'Item not found.' });
@@ -150,7 +156,7 @@ export function registerGroceryHandlers(io, socket) {
         return;
       }
 
-      if (!isSupabaseConfigured) {
+      if (useMemoryStore) {
         const deleted = memoryStore.deleteItem(userId, id);
         if (!deleted) {
           if (typeof callback === 'function') callback({ success: false, error: 'Item not found.' });
